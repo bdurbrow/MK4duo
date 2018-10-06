@@ -79,19 +79,19 @@
     const float oldHeightA = homed_height + mechanics.delta_endstop_adj[A_AXIS];
 
     // Update endstop adjustments
-    mechanics.delta_endstop_adj[A_AXIS] += v[0];
-    mechanics.delta_endstop_adj[B_AXIS] += v[1];
-    mechanics.delta_endstop_adj[C_AXIS] += v[2];
+    mechanics.delta_endstop_adj[A_AXIS] += (float)v[0];
+    mechanics.delta_endstop_adj[B_AXIS] += (float)v[1];
+    mechanics.delta_endstop_adj[C_AXIS] += (float)v[2];
     NormaliseEndstopAdjustments();
 
     if (numFactors >= 4) {
-      mechanics.delta_radius += v[3];
+      mechanics.delta_radius += (float)v[3];
 
       if (numFactors >= 6) {
-        mechanics.delta_tower_angle_adj[A_AXIS] += v[4];
-        mechanics.delta_tower_angle_adj[B_AXIS] += v[5];
+        mechanics.delta_tower_angle_adj[A_AXIS] += (float)v[4];
+        mechanics.delta_tower_angle_adj[B_AXIS] += (float)v[5];
 
-        if (numFactors == 7) mechanics.delta_diagonal_rod += v[6];
+        if (numFactors == 7) mechanics.delta_diagonal_rod += (float)v[6];
 
       }
     }
@@ -216,9 +216,7 @@
     }
 
     // Do 1 or more Newton-Raphson iterations
-
     do {
-      iteration++;
 
       float derivativeMatrix[MaxCalibrationPoints][numFactors],
             normalMatrix[numFactors][numFactors + 1];
@@ -238,9 +236,9 @@
           }
           normalMatrix[i][j] = temp;
         }
-        float temp = derivativeMatrix[0][i] * -(zBedProbePoints[0] + corrections[0]);
+        float temp = derivativeMatrix[0][i] * (zBedProbePoints[0] + corrections[0]) * -1;
         for (uint8_t k = 1; k < probe_points; k++) {
-          temp += derivativeMatrix[k][i] * -(zBedProbePoints[k] + corrections[k]);
+          temp += derivativeMatrix[k][i] * (zBedProbePoints[k] + corrections[k]) * -1;
         }
         normalMatrix[i][numFactors] = temp;
       }
@@ -302,8 +300,9 @@
         sumOfSquares += sq(expectedResiduals[i]);
       }
 
-      expectedRmsError = SQRT(sumOfSquares / probe_points);
+      expectedRmsError = SQRT((float)(sumOfSquares / probe_points));
 
+      ++iteration;
     } while (iteration < 2);
 
     // convert delta_endstop_adj;

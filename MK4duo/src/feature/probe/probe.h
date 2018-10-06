@@ -30,8 +30,8 @@
 #define _PROBE_H_
 
 #if HAS_Z_SERVO_PROBE
-  #define DEPLOY_Z_SERVO() MOVE_SERVO(Z_PROBE_SERVO_NR, probe.z_servo_angle[0])
-  #define STOW_Z_SERVO()   MOVE_SERVO(Z_PROBE_SERVO_NR, probe.z_servo_angle[1])
+  #define DEPLOY_Z_SERVO() MOVE_SERVO(Z_PROBE_SERVO_NR, servo[Z_PROBE_SERVO_NR].angle[0])
+  #define STOW_Z_SERVO()   MOVE_SERVO(Z_PROBE_SERVO_NR, servo[Z_PROBE_SERVO_NR].angle[1])
 #endif
 
 #if HAS_BED_PROBE
@@ -57,10 +57,6 @@ class Probe {
   public: /** Public Parameters */
 
     static float offset[XYZ];
-
-    #if HAS_Z_SERVO_PROBE
-      static const int z_servo_angle[2];
-    #endif
 
   public: /** Public Function */
 
@@ -113,6 +109,7 @@ class Probe {
 
     #if ENABLED(Z_PROBE_ALLEN_KEY)
       static void run_deploy_moves_script();
+      static void run_stow_moves_script();
     #endif
 
     #if HAS_Z_PROBE_SLED

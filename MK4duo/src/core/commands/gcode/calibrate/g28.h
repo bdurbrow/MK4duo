@@ -47,16 +47,16 @@
  */
 inline void gcode_G28(void) { 
 
-  #if ENABLED(DEBUG_LEVELING_FEATURE)
-    if (printer.debugLeveling()) {
+  #if ENABLED(DEBUG_FEATURE)
+    if (printer.debugFeature()) {
       SERIAL_EM(">>> G28");
       mechanics.log_machine_info();
     }
   #endif
 
   if (printer.isHomedAll() && parser.boolval('O')) { // home only if needed
-    #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (printer.debugLeveling()) {
+    #if ENABLED(DEBUG_FEATURE)
+      if (printer.debugFeature()) {
         SERIAL_EM("> homing not needed, skip");
         SERIAL_EM("<<< G28");
       }
@@ -64,12 +64,12 @@ inline void gcode_G28(void) {
     return;
   }
 
-  #if MECH(DELTA)
+  #if IS_KINEMATIC
 
     (void)mechanics.home();
 
   #else
-    
+
     #if ENABLED(FORCE_HOME_XY_BEFORE_Z)
       const bool  homeZ = parser.seen('Z'),
                   homeX = homeZ || parser.seen('X'),

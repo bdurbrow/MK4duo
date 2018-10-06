@@ -200,10 +200,10 @@ class unified_bed_leveling {
      * z_correction_for_x_on_horizontal_mesh_line is an optimization for
      * the case where the printer is making a vertical line that only crosses horizontal mesh lines.
      */
-    inline static float z_correction_for_x_on_horizontal_mesh_line(const float &rx0, const int x1_i, const int yi) {
+    static inline float z_correction_for_x_on_horizontal_mesh_line(const float &rx0, const int x1_i, const int yi) {
       if (!WITHIN(x1_i, 0, GRID_MAX_POINTS_X - 1) || !WITHIN(yi, 0, GRID_MAX_POINTS_Y - 1)) {
-        #if ENABLED(DEBUG_LEVELING_FEATURE)
-          if (printer.debugLeveling()) {
+        #if ENABLED(DEBUG_FEATURE)
+          if (printer.debugFeature()) {
             SERIAL_PS( !WITHIN(x1_i, 0, GRID_MAX_POINTS_X - 1) ? PSTR("x1_i") : PSTR("yi") );
             SERIAL_MV(" out of bounds in z_correction_for_x_on_horizontal_mesh_line(rx0=", rx0);
             SERIAL_MV(",x1_i=", x1_i);
@@ -234,10 +234,10 @@ class unified_bed_leveling {
     //
     // See comments above for z_correction_for_x_on_horizontal_mesh_line
     //
-    inline static float z_correction_for_y_on_vertical_mesh_line(const float &ry0, const int xi, const int y1_i) {
+    static inline float z_correction_for_y_on_vertical_mesh_line(const float &ry0, const int xi, const int y1_i) {
       if (!WITHIN(xi, 0, GRID_MAX_POINTS_X - 1) || !WITHIN(y1_i, 0, GRID_MAX_POINTS_Y - 1)) {
-        #if ENABLED(DEBUG_LEVELING_FEATURE)
-          if (printer.debugLeveling()) {
+        #if ENABLED(DEBUG_FEATURE)
+          if (printer.debugFeature()) {
             SERIAL_PS( !WITHIN(xi, 0, GRID_MAX_POINTS_X - 1) ? PSTR("xi") : PSTR("y1_i") );
             SERIAL_MV(" out of bounds in z_correction_for_y_on_vertical_mesh_line(ry0=", ry0);
             SERIAL_MV(", xi=", xi);
@@ -296,7 +296,7 @@ class unified_bed_leveling {
                          mesh_index_to_ypos(cy), z1,
                          mesh_index_to_ypos(cy + 1), z2);
 
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
+      #if ENABLED(DEBUG_FEATURE)
         if (printer.debugMesh()) {
           SERIAL_MV(" raw get_z_correction(", rx0);
           SERIAL_CHR(',');
@@ -305,7 +305,7 @@ class unified_bed_leveling {
         }
       #endif
 
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
+      #if ENABLED(DEBUG_FEATURE)
         if (printer.debugMesh())
           SERIAL_EMV(" >>>---> ", z0, 6);
       #endif
@@ -316,7 +316,7 @@ class unified_bed_leveling {
                        // because part of the Mesh is undefined and we don't have the
                        // information we need to complete the height correction.
 
-        #if ENABLED(DEBUG_LEVELING_FEATURE)
+        #if ENABLED(DEBUG_FEATURE)
           if (printer.debugMesh()) {
             SERIAL_MV("??? Yikes!  NAN in get_z_correction(", rx0);
             SERIAL_CHR(',');
@@ -343,7 +343,7 @@ class unified_bed_leveling {
       static void line_to_destination_cartesian(const float &fr, const uint8_t e);
     #endif
 
-    inline static bool mesh_is_valid() {
+    static inline bool mesh_is_valid() {
       for (uint8_t x = 0; x < GRID_MAX_POINTS_X; x++) {
         for (uint8_t y = 0; y < GRID_MAX_POINTS_Y; y++) {
           if (isnan(z_values[x][y])) return false;

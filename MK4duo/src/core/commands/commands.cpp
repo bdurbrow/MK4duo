@@ -174,7 +174,7 @@ void Commands::get_serial() {
 
         gcode_LastN = gcode_N;
       }
-      #if HAS_SDSUPPORT
+      #if HAS_SD_SUPPORT
         else if (card.isSaving()) {
           gcode_line_error(PSTR(MSG_ERR_NO_CHECKSUM));
           return;
@@ -229,7 +229,7 @@ void Commands::get_serial() {
   }
 }
 
-#if HAS_SDSUPPORT
+#if HAS_SD_SUPPORT
 
   /**
    * Get commands from the SD Card until the command buffer is full
@@ -333,7 +333,7 @@ void Commands::get_serial() {
     printer.progress = card.percentDone();
   }
 
-#endif // HAS_SDSUPPORT
+#endif // HAS_SD_SUPPORT
 
 /**
  * Send a "Resend: nnn" message to the host to
@@ -390,7 +390,7 @@ void Commands::get_available() {
     if (restart.job_phase == RESTART_YES && enqueue_restart()) return;
   #endif
 
-  #if HAS_SDSUPPORT
+  #if HAS_SD_SUPPORT
     get_sdcard();
   #endif
 }
@@ -402,7 +402,7 @@ void Commands::advance_queue() {
 
   if (!buffer_lenght) return;
 
-  #if HAS_SDSUPPORT
+  #if HAS_SD_SUPPORT
 
     if (card.isSaving()) {
       char* command = buffer_ring[buffer_index_r];
@@ -433,11 +433,11 @@ void Commands::advance_queue() {
       #endif
     }
 
-  #else // !HAS_SDSUPPORT
+  #else // !HAS_SD_SUPPORT
 
     process_next();
 
-  #endif // !HAS_SDSUPPORT
+  #endif // !HAS_SD_SUPPORT
 
   // The buffer_ring may be reset by a command handler or by code invoked by idle() within a handler
   if (buffer_lenght) {
@@ -568,29 +568,33 @@ bool Commands::get_target_tool(const uint16_t code) {
   return false;
 }
 
-bool Commands::get_target_heater(int8_t &h) {
-
+bool Commands::get_target_heater(int8_t &h, const bool only_hotend/*=false*/) {
+  h = parser.seen('H') ? parser.value_int() : 0;
   if (WITHIN(h, 0 , HOTENDS -1)) return true;
-  #if HAS_HEATER_BED
-    else if (h == -1) {
-      h = BED_INDEX;
-      return true;
-    }
-  #endif
-  #if HAS_HEATER_CHAMBER
-    else if (h == -2) {
-      h = CHAMBER_INDEX;
-      return true;
-    }
-  #endif
-  #if HAS_HEATER_COOLER
-    else if (h == -3) {
-      h = COOLER_INDEX;
-      return true;
-    }
-  #endif
-  else {
+  if (!only_hotend) {
+    #if HAS_HEATER_BED
+      if (h == -1) {
+        h = BED_INDEX;
+        return true;
+      }
+    #endif
+    #if HAS_HEATER_CHAMBER
+      if (h == -2) {
+        h = CHAMBER_INDEX;
+        return true;
+      }
+    #endif
+    #if HAS_HEATER_COOLER
+      if (h == -3) {
+        h = COOLER_INDEX;
+        return true;
+      }
+    #endif
     SERIAL_LM(ER, MSG_INVALID_HEATER);
+    return false;
+  }
+  else {
+    SERIAL_LM(ER, MSG_INVALID_HOTEND);
     return false;
   }
 }
@@ -655,12 +659,17 @@ void Commands::gcode_line_error(const char* err) {
  * Enqueue with Serial Echo
  */
 bool Commands::enqueue_and_echo(const char* cmd) {
+
+  if (*cmd == 0 || *cmd == '\n' || *cmd == '\r')
+    return true;
+
   if (enqueue(cmd)) {
     SERIAL_SMT(ECHO, MSG_ENQUEUEING, cmd);
     SERIAL_CHR('"');
     SERIAL_EOL();
     return true;
   }
+
   return false;
 }
 

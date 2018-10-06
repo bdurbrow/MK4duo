@@ -61,7 +61,7 @@
     const bool Bedlevel::g29_in_progress = false;
   #endif
 
-  #if PLANNER_LEVELING
+  #if PLANNER_LEVELING || HAS_UBL_AND_CURVES
 
     /**
      * rx, ry, rz - Cartesian positions in mm
@@ -155,7 +155,7 @@
       #endif
     }
 
-  #endif // PLANNER_LEVELING
+  #endif // PLANNER_LEVELING || HAS_UBL_AND_CURVES
 
   bool Bedlevel::leveling_is_valid() {
     #if ENABLED(MESH_BED_LEVELING)
@@ -284,8 +284,8 @@
    * Reset calibration results to zero.
    */
   void Bedlevel::reset() {
-    #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (printer.debugLeveling()) SERIAL_EM("Reset Bed Level");
+    #if ENABLED(DEBUG_FEATURE)
+      if (printer.debugFeature()) SERIAL_EM("Reset Bed Level");
     #endif
     set_bed_leveling_enabled(false);
     #if ENABLED(MESH_BED_LEVELING)

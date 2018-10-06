@@ -204,31 +204,6 @@ void Stepper::init() {
     microstep_init();
   #endif
 
-  // Init TMC26x Steppers
-  #if HAVE_DRV(TMC26X)
-    tmc26x_init_to_defaults();
-  #endif
-
-  // Init TMC2130 Steppers
-  #if HAVE_DRV(TMC2130)
-    tmc2130_init_to_defaults();
-  #endif
-
-  // Init TMC2208 Steppers
-  #if HAVE_DRV(TMC2208)
-    tmc2208_init_to_defaults();
-  #endif
-
-  // TRAMS, TMC2130 and TMC2208 advanced settings
-  #if HAS_TRINAMIC
-    TMC_ADV()
-  #endif
-
-  // Init L6470 Steppers
-  #if HAVE_DRV(L6470)
-    L6470_init_to_defaults();
-  #endif
-
   // Init Dir Pins
   #if HAS_X_DIR
     X_DIR_INIT;
@@ -1397,16 +1372,10 @@ uint32_t Stepper::block_phase_step() {
 
       #if ENABLED(LIN_ADVANCE)
         if (LA_use_advance_lead) {
-          // Wake up eISR on first acceleration loop and fire ISR if final adv_rate is reached
-          if (step_events_completed == steps_per_isr || (LA_steps && LA_isr_rate != current_block->advance_speed)) {
-            nextAdvanceISR = 0;
-            LA_isr_rate = current_block->advance_speed;
-          }
+          // Fire ISR if final adv_rate is reached
+          if (LA_steps && LA_isr_rate != current_block->advance_speed) nextAdvanceISR = 0;
         }
-        else {
-          LA_isr_rate = LA_ADV_NEVER;
-          if (LA_steps) nextAdvanceISR = 0;
-        }
+        else if (LA_steps) nextAdvanceISR = 0;
       #endif // ENABLED(LIN_ADVANCE)
     }
     // Are we in deceleration phase
@@ -1449,17 +1418,15 @@ uint32_t Stepper::block_phase_step() {
 
       #if ENABLED(LIN_ADVANCE)
         if (LA_use_advance_lead) {
+          // Wake up eISR on first deceleration loop and fire ISR if final adv_rate is reached
           if (step_events_completed <= decelerate_after + steps_per_isr ||
              (LA_steps && LA_isr_rate != current_block->advance_speed)
           ) {
-            nextAdvanceISR = 0; // Wake up eISR on first deceleration loop
+            nextAdvanceISR = 0;
             LA_isr_rate = current_block->advance_speed;
           }
         }
-        else {
-          LA_isr_rate = LA_ADV_NEVER;
-          if (LA_steps) nextAdvanceISR = 0;
-        }
+        else if (LA_steps) nextAdvanceISR = 0;
       #endif // LIN_ADVANCE
     }
     // We must be in cruise phase otherwise
@@ -1636,7 +1603,11 @@ uint32_t Stepper::block_phase_step() {
         if ((LA_use_advance_lead = current_block->use_advance_lead)) {
           LA_final_adv_steps = current_block->final_adv_steps;
           LA_max_adv_steps = current_block->max_adv_steps;
+          // Start the ISR
+          nextAdvanceISR = 0;
+          LA_isr_rate = current_block->advance_speed;
         }
+        else LA_isr_rate = LA_ADV_NEVER;
       #endif
 
       if (current_block->direction_bits != last_direction_bits
@@ -1864,7 +1835,7 @@ void Stepper::start_X_step() {
       X2_STEP_WRITE(!INVERT_X_STEP_PIN);
     #endif
   #elif ENABLED(DUAL_X_CARRIAGE)
-    if (mechanics.hotend_duplication_enabled || ALWAYS) {
+    if (mechanics.hotend_duplication_enabled) {
       X_STEP_WRITE(!INVERT_X_STEP_PIN);
       X2_STEP_WRITE(!INVERT_X_STEP_PIN);
     }
@@ -1964,7 +1935,7 @@ void Stepper::set_X_dir(const bool dir) {
     X_DIR_WRITE(dir);
     X2_DIR_WRITE((dir) != INVERT_X2_VS_X_DIR);
   #elif ENABLED(DUAL_X_CARRIAGE)
-    if (mechanics.hotend_duplication_enabled || ALWAYS) {
+    if (mechanics.hotend_duplication_enabled) {
       X_DIR_WRITE(dir);
       X2_DIR_WRITE(dir);
     }
@@ -3017,7 +2988,8 @@ void Stepper::_set_position(const int32_t &a, const int32_t &b, const int32_t &c
       const uint8_t old_dir = _READ_DIR(AXIS);          \
       _ENABLE(AXIS);                                    \
       _APPLY_DIR(AXIS, _INVERT_DIR(AXIS)^DIR^INVERT);   \
-      DELAY_NS(400); /* DRV8825 */                      \
+      if (direction_delay >= 50)                        \
+        HAL::delayNanoseconds(direction_delay);         \
       _SAVE_START;                                      \
       _APPLY_STEP(AXIS)(!_INVERT_STEP_PIN(AXIS), true); \
       _PULSE_WAIT;                                      \
@@ -3089,7 +3061,8 @@ void Stepper::_set_position(const int32_t &a, const int32_t &b, const int32_t &c
           Y_DIR_WRITE(isStepDir(Y_AXIS) ^ z_direction);
           Z_DIR_WRITE(isStepDir(Z_AXIS) ^ z_direction);
 
-          DELAY_NS(400); // DRV8825
+          if (direction_delay >= 50)
+            HAL::delayNanoseconds(direction_delay);
 
           _SAVE_START;
 

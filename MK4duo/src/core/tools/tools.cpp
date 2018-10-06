@@ -42,7 +42,7 @@
   
   #if ENABLED(VOLUMETRIC_EXTRUSION)
     float Tools::filament_size[EXTRUDERS]         = ARRAY_BY_EXTRUDERS(DEFAULT_NOMINAL_FILAMENT_DIA),
-          Tools::volumetric_area_nominal          = CIRCLE_AREA((DEFAULT_NOMINAL_FILAMENT_DIA) * 0.5),
+          Tools::volumetric_area_nominal          = CIRCLE_AREA(float(DEFAULT_NOMINAL_FILAMENT_DIA) * 0.5f),
           Tools::volumetric_multiplier[EXTRUDERS] = ARRAY_BY_EXTRUDERS(1.0);
   #endif
 
@@ -62,7 +62,19 @@
 
   void Tools::change(const uint8_t tmp_extruder, const float fr_mm_s/*=0.0*/, bool no_move/*=false*/) {
 
+    #if ENABLED(DUAL_X_CARRIAGE)
+      // Only T0 allowed in DXC_DUPLICATION_MODE
+      if (tmp_extruder != 0 && mechanics.dual_x_carriage_mode == DXC_DUPLICATION_MODE)
+         return invalid_extruder_error(tmp_extruder);
+    #endif
+
     planner.synchronize();
+
+    #if HAS_LEVELING
+      // Set current position to the physical position
+      const bool leveling_was_active = bedlevel.leveling_active;
+      bedlevel.set_bed_leveling_enabled(false);
+    #endif
 
     #if ENABLED(COLOR_MIXING_EXTRUDER) && MIXING_VIRTUAL_TOOLS > 1
 
@@ -85,36 +97,30 @@
             no_move = true;
           }
 
-          // Save current position to destination, for use later
-          mechanics.set_destination_to_current();
-
-          #if HAS_LEVELING
-            // Set current position to the physical position
-            const bool leveling_was_active = bedlevel.leveling_active;
-            bedlevel.set_bed_leveling_enabled(false);
-          #endif
-
           #if ENABLED(DUAL_X_CARRIAGE)
 
             dualx_tool_change(tmp_extruder, no_move); // Can modify no_move
 
           #else // !DUAL_X_CARRIAGE
 
+            mechanics.set_destination_to_current();
+
+            const float x_diff = hotend_offset[X_AXIS][tmp_extruder] - hotend_offset[X_AXIS][active_extruder],
+                        y_diff = hotend_offset[Y_AXIS][tmp_extruder] - hotend_offset[Y_AXIS][active_extruder],
+                        z_diff = hotend_offset[Z_AXIS][tmp_extruder] - hotend_offset[Z_AXIS][active_extruder];
+
             #if HAS_DONDOLO
               // Always raise by at least 1 to avoid workpiece
-              const float z_diff  = hotend_offset[Z_AXIS][active_extruder] - hotend_offset[Z_AXIS][tmp_extruder];
-              mechanics.current_position[Z_AXIS] += (z_diff > 0.0 ? z_diff : 0.0) + 1;
+              mechanics.current_position[Z_AXIS] += (z_diff < 0.0 ? -z_diff : 0.0) + 1;
               planner.buffer_line_kinematic(mechanics.current_position, mechanics.max_feedrate_mm_s[Z_AXIS], active_extruder);
               move_extruder_servo(tmp_extruder);
             #endif
 
-            const float x_diff = hotend_offset[X_AXIS][tmp_extruder] - hotend_offset[X_AXIS][active_extruder],
-                        y_diff = hotend_offset[Y_AXIS][tmp_extruder] - hotend_offset[Y_AXIS][active_extruder];
-
-            #if ENABLED(DEBUG_LEVELING_FEATURE)
-              if (printer.debugLeveling()) {
-                SERIAL_MV("Offset Tool XY by { ", x_diff);
+            #if ENABLED(DEBUG_FEATURE)
+              if (printer.debugFeature()) {
+                SERIAL_MV("Offset Tool XYZ by { ", x_diff);
                 SERIAL_MV(", ", y_diff);
+                SERIAL_MV(", ", z_diff);
                 SERIAL_EM(" }");
               }
             #endif
@@ -122,21 +128,13 @@
             // The newly-selected extruder XY is actually at...
             mechanics.current_position[X_AXIS] += x_diff;
             mechanics.current_position[Y_AXIS] += y_diff;
+            mechanics.current_position[Z_AXIS] += z_diff;
 
             // Set the new active extruder
             previous_extruder = active_extruder;
             active_extruder = tmp_extruder;
 
           #endif // !DUAL_X_CARRIAGE
-
-          #if HAS_LEVELING
-            // Restore leveling to re-establish the logical position
-            bedlevel.set_bed_leveling_enabled(leveling_was_active);
-          #endif
-
-          #if HAS_DONDOLO
-            mechanics.current_position[Z_AXIS] -= z_diff;
-          #endif
 
           // Tell the planner the new "current position"
           mechanics.sync_plan_position_mech_specific();
@@ -154,8 +152,8 @@
               mechanics.current_position[Z_AXIS] += 1.0;
               planner.buffer_line_kinematic(mechanics.current_position, mechanics.max_feedrate_mm_s[Z_AXIS], active_extruder);
             #endif
-            #if ENABLED(DEBUG_LEVELING_FEATURE)
-              if (printer.debugLeveling()) DEBUG_POS("Move back", mechanics.destination);
+            #if ENABLED(DEBUG_FEATURE)
+              if (printer.debugFeature()) DEBUG_POS("Move back", mechanics.destination);
             #endif
             // Move back to the original (or tweaked) position
             mechanics.do_blocking_move_to(mechanics.destination[X_AXIS], mechanics.destination[Y_AXIS], mechanics.destination[Z_AXIS]);
@@ -195,11 +193,26 @@
 
       #endif // HOTENDS <= 1
 
+      #if HAS_LEVELING
+        planner.synchronize();
+        // Restore leveling to re-establish the logical position
+        bedlevel.set_bed_leveling_enabled(leveling_was_active);
+      #endif
+
       SERIAL_LMV(ECHO, MSG_ACTIVE_EXTRUDER, (int)active_extruder);
 
     #endif // !MIXING_EXTRUDER || MIXING_VIRTUAL_TOOLS <= 1
   }
-  
+
+  void Tools::print_parameters(const uint8_t h) {
+    SERIAL_LM(CFG, "Hotend offset (unit): H<Hotend> X<offset> Y<offset> Z<offset>:");
+    SERIAL_SMV(CFG, "  M218 H", (int)h);
+    SERIAL_MV(" X", LINEAR_UNIT(tools.hotend_offset[X_AXIS][h]), 3);
+    SERIAL_MV(" Y", LINEAR_UNIT(tools.hotend_offset[Y_AXIS][h]), 3);
+    SERIAL_MV(" Z", LINEAR_UNIT(tools.hotend_offset[Z_AXIS][h]), 3);
+    SERIAL_EOL();
+  }
+
   #if ENABLED(EXT_SOLENOID)
 
     void Tools::enable_solenoid(const uint8_t e) {
@@ -480,9 +493,8 @@
   #if HAS_DONDOLO
 
     void Tools::move_extruder_servo(const uint8_t e) {
-      constexpr int16_t angles[] = { DONDOLO_SERVOPOS_E0, DONDOLO_SERVOPOS_E1 };
       planner.synchronize();
-      MOVE_SERVO(DONDOLO_SERVO_INDEX, angles[e]);
+      MOVE_SERVO(DONDOLO_SERVO_INDEX, servo[DONDOLO_SERVO_INDEX].angle[e]);
       #if (DONDOLO_SERVO_DELAY > 0)
         printer.safe_delay(DONDOLO_SERVO_DELAY);
       #endif
@@ -508,13 +520,12 @@
   #if ENABLED(DUAL_X_CARRIAGE)
 
     void Tools::dualx_tool_change(const uint8_t tmp_extruder, bool &no_move) {
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (printer.debugLeveling()) {
+      #if ENABLED(DEBUG_FEATURE)
+        if (printer.debugFeature()) {
           SERIAL_MSG("Dual X Carriage Mode ");
           switch (mechanics.dual_x_carriage_mode) {
-            case DXC_DUPLICATION_MODE: SERIAL_EM("DXC_DUPLICATION_MODE"); break;
-            case DXC_AUTO_PARK_MODE: SERIAL_EM("DXC_AUTO_PARK_MODE"); break;
             case DXC_FULL_CONTROL_MODE: SERIAL_EM("DXC_FULL_CONTROL_MODE"); break;
+            case DXC_AUTO_PARK_MODE: SERIAL_EM("DXC_AUTO_PARK_MODE"); break;
           }
         }
       #endif
@@ -528,23 +539,23 @@
         #if ENABLED(MAX_SOFTWARE_ENDSTOPS)
           NOMORE(raised_z, endstops.soft_endstop_max[Z_AXIS]);
         #endif
-        #if ENABLED(DEBUG_LEVELING_FEATURE)
-          if (printer.debugLeveling()) {
+        #if ENABLED(DEBUG_FEATURE)
+          if (printer.debugFeature()) {
             SERIAL_EMV("Raise to ", raised_z);
             SERIAL_EMV("MoveX to ", xhome);
             SERIAL_EMV("Lower to ", mechanics.current_position[Z_AXIS]);
           }
         #endif
         // Park old head: 1) raise 2) move to park position 3) lower
-        for (uint8_t i = 0; i < 3; i++)
-          planner.buffer_line(
-            i == 0 ? mechanics.current_position[X_AXIS] : xhome,
-            mechanics.current_position[Y_AXIS],
-            i == 2 ? mechanics.current_position[Z_AXIS] : raised_z,
-            mechanics.current_position[E_AXIS],
-            mechanics.max_feedrate_mm_s[i == 1 ? X_AXIS : Z_AXIS],
-            active_extruder
-          );
+        #define CUR_X mechanics.current_position[X_AXIS]
+        #define CUR_Y mechanics.current_position[Y_AXIS]
+        #define CUR_Z mechanics.current_position[Z_AXIS]
+        #define CUR_E mechanics.current_position[E_AXIS]
+
+        planner.buffer_line( CUR_X, CUR_Y, raised_z, CUR_E, mechanics.max_feedrate_mm_s[Z_AXIS], active_extruder);
+        planner.buffer_line( xhome, CUR_Y, raised_z, CUR_E, mechanics.max_feedrate_mm_s[X_AXIS], active_extruder);
+        planner.buffer_line( xhome, CUR_Y, CUR_Z,    CUR_E, mechanics.max_feedrate_mm_s[Z_AXIS], active_extruder);
+
         planner.synchronize();
       }
 
@@ -558,8 +569,8 @@
       // This function resets the max/min values - the current position may be overwritten below.
       mechanics.set_axis_is_at_home(X_AXIS);
 
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (printer.debugLeveling()) DEBUG_POS("New Extruder", mechanics.current_position);
+      #if ENABLED(DEBUG_FEATURE)
+        if (printer.debugFeature()) DEBUG_POS("New Extruder", mechanics.current_position);
       #endif
 
       // Only when auto-parking are carriages safe to move
@@ -582,28 +593,10 @@
           mechanics.active_hotend_parked = true;
           mechanics.delayed_move_time = 0;
           break;
-        case DXC_DUPLICATION_MODE:
-          // If the new hotend is the left one, set it "parked"
-          // This triggers the second hotend to move into the duplication position
-          mechanics.active_hotend_parked = (active_extruder == 0);
-
-          if (mechanics.active_hotend_parked)
-            mechanics.current_position[X_AXIS] = mechanics.inactive_hotend_x_pos;
-          else
-            mechanics.current_position[X_AXIS] = mechanics.destination[X_AXIS] + mechanics.duplicate_hotend_x_offset;
-          mechanics.inactive_hotend_x_pos = mechanics.destination[X_AXIS];
-          mechanics.hotend_duplication_enabled = false;
-          #if ENABLED(DEBUG_LEVELING_FEATURE)
-            if (printer.debugLeveling()) {
-              SERIAL_EMV("Set inactive_hotend_x_pos=", mechanics.inactive_hotend_x_pos);
-              SERIAL_EM("Clear hotend_duplication_enabled");
-            }
-          #endif
-          break;
       }
 
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (printer.debugLeveling()) {
+      #if ENABLED(DEBUG_FEATURE)
+        if (printer.debugFeature()) {
           SERIAL_EMV("Active hotend parked: ", mechanics.active_hotend_parked ? "yes" : "no");
           DEBUG_POS("New hotend (parked)", mechanics.current_position);
         }

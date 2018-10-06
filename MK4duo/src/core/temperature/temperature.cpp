@@ -189,7 +189,10 @@ void Temperature::wait_heater(Heater *act, bool no_wait_for_cooling/*=true*/) {
 void Temperature::set_current_temp_raw() {
 
   #if ANALOG_INPUTS > 0
-    LOOP_HEATER() heaters[h].sensor.raw = HAL::AnalogInputValues[heaters[h].sensor.pin];
+    LOOP_HEATER() {
+      if (WITHIN(heaters[h].sensor.pin, 0, 15))
+        heaters[h].sensor.raw = HAL::AnalogInputValues[heaters[h].sensor.pin];
+    }
   #endif
 
   #if HAS_POWER_CONSUMPTION_SENSOR
@@ -584,6 +587,24 @@ bool Temperature::heaters_isActive() {
   #endif
   return false;
 }
+
+#if ENABLED(SUPPORT_MAX6675) || ENABLED(SUPPORT_MAX31855)
+
+  void Temperature::getTemperature_SPI() {
+    LOOP_HEATER() {
+      Heater *act = &heaters[h];
+      #if ENABLED(SUPPORT_MAX31855)
+        if (act->sensor.type == -4)
+          act->sensor.raw = act->sensor.read_max31855();
+      #endif
+      #if ENABLED(SUPPORT_MAX6675)
+        if (act->sensor.type == -3)
+          act->sensor.raw = act->sensor.read_max6675();
+      #endif
+    }
+  }
+
+#endif
 
 #if ENABLED(FILAMENT_SENSOR)
 

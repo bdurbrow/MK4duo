@@ -60,6 +60,12 @@
 #ifndef MSG_MAIN
   #define MSG_MAIN                            _UxGT("Main")
 #endif
+#ifndef MSG_ADVANCED_SETTINGS
+  #define MSG_ADVANCED_SETTINGS               _UxGT("Advanced Settings")
+#endif
+#ifndef MSG_CONFIGURATION
+  #define MSG_CONFIGURATION                   _UxGT("Configuration")
+#endif
 #ifndef MSG_AUTOSTART
   #define MSG_AUTOSTART                       _UxGT("Autostart")
 #endif
@@ -83,6 +89,9 @@
 #endif
 #ifndef MSG_AUTO_HOME_Z
   #define MSG_AUTO_HOME_Z                     _UxGT("Home Z")
+#endif
+#ifndef MSG_TMC_Z_CALIBRATION
+  #define MSG_TMC_Z_CALIBRATION               _UxGT("Calibrate Z")
 #endif
 #ifndef MSG_LEVEL_BED_HOMING
   #define MSG_LEVEL_BED_HOMING                _UxGT("Homing XYZ")
@@ -162,6 +171,9 @@
 #ifndef MSG_PREHEAT_3_SETTINGS
   #define MSG_PREHEAT_3_SETTINGS              MSG_PREHEAT_3 _UxGT(" conf")
 #endif
+#ifndef MSG_PREHEAT_CUSTOM
+  #define MSG_PREHEAT_CUSTOM                  _UxGT("Preheat Custom")
+#endif
 #ifndef MSG_COOLDOWN
   #define MSG_COOLDOWN                        _UxGT("Cooldown")
 #endif
@@ -209,6 +221,18 @@
 #endif
 #ifndef MSG_UBL_LEVEL_BED
   #define MSG_UBL_LEVEL_BED                   _UxGT("Unified Bed Leveling")
+#endif
+#ifndef MSG_DXC_MENU
+  #define MSG_DXC_MENU                        _UxGT("DXC Mode")
+#endif
+#ifndef MSG_DXC_MODE_AUTOPARK
+  #define MSG_DXC_MODE_AUTOPARK               _UxGT("Auto-Park")
+#endif
+#ifndef MSG_DXC_MODE_DUPLICATE
+  #define MSG_DXC_MODE_DUPLICATE              _UxGT("Duplication")
+#endif
+#ifndef MSG_DXC_MODE_FULL_CTRL
+  #define MSG_DXC_MODE_FULL_CTRL              _UxGT("Full control")
 #endif
 #ifndef MSG_UBL_MANUAL_MESH
   #define MSG_UBL_MANUAL_MESH                 _UxGT("Manually Build Mesh")
@@ -918,7 +942,7 @@
   #define MSG_CHAMBER_DONE                    _UxGT("Chamber done.")
 #endif
 #ifndef MSG_COOLER_COOLING
-  #define MSG_COOLER_COOLING                  _UxGT("Cooler vooling.")
+  #define MSG_COOLER_COOLING                  _UxGT("Cooler cooling.")
 #endif
 #ifndef MSG_COOLER_DONE
   #define MSG_COOLER_DONE                     _UxGT("Cooler done.")
@@ -1173,6 +1197,9 @@
   #endif
   #ifndef MSG_FILAMENT_CHANGE_INSERT_1
     #define MSG_FILAMENT_CHANGE_INSERT_1        _UxGT("Insert and Click")
+  #endif
+  #ifndef MSG_FILAMENT_CHANGE_HEAT_1
+    #define MSG_FILAMENT_CHANGE_HEAT_1          _UxGT("Click to heat")
   #endif
   #ifndef MSG_FILAMENT_CHANGE_HEATING_1
     #define MSG_FILAMENT_CHANGE_HEATING_1       _UxGT("Heating...")

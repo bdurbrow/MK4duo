@@ -260,9 +260,7 @@
    */
   uint8_t did_pause_print = 0;
 
-  bool pause_print(const float &retract, const point_t &park_point, const float &unload_length/*=0*/,
-                   const bool show_lcd/*=false*/
-  ) {
+  bool pause_print(const float &retract, const point_t &park_point, const float &unload_length/*=0*/, const bool show_lcd/*=false*/) {
 
     if (did_pause_print) return false; // already paused
 
@@ -291,7 +289,7 @@
     ++did_pause_print;
 
     // Pause the print job and timer
-    #if HAS_SDSUPPORT
+    #if HAS_SD_SUPPORT
       if (IS_SD_PRINTING) {
         card.pauseSDPrint();
         ++did_pause_print;
@@ -524,7 +522,7 @@
 
     --did_pause_print;
 
-    #if HAS_SDSUPPORT
+    #if HAS_SD_SUPPORT
       if (did_pause_print) {
         card.startFileprint();
         --did_pause_print;

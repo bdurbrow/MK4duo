@@ -42,8 +42,6 @@
 #ifndef _NEXTION_LCD_H_
 #define _NEXTION_LCD_H_
 
-#define LCD_DECIMAL_SMALL_XY
-
 // For debug Connect
 //#define NEXTION_CONNECT_DEBUG
 
@@ -80,7 +78,7 @@
     void gfx_plane_to(const float x, const float y, const float z);
   #endif
 
-  #if HAS_SDSUPPORT
+  #if HAS_SD_SUPPORT
     void sdmountdismountPopCallback(void *ptr);
     void sdlistPopCallback(void *ptr);
     void sdfilePopCallback(void *ptr);

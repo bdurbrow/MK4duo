@@ -33,10 +33,6 @@ Probe probe;
 /** Public Parameters */
 float Probe::offset[XYZ] = { X_PROBE_OFFSET_FROM_NOZZLE, Y_PROBE_OFFSET_FROM_NOZZLE, Z_PROBE_OFFSET_FROM_NOZZLE };
 
-#if HAS_Z_SERVO_PROBE
-  const int Probe::z_servo_angle[2] = Z_SERVO_ANGLES;
-#endif
-
 /** Public Function */
 
 // returns false for ok and true for failure
@@ -51,8 +47,8 @@ bool Probe::set_deployed(const bool deploy) {
     #endif
   #endif
 
-  #if ENABLED(DEBUG_LEVELING_FEATURE)
-    if (printer.debugLeveling()) {
+  #if ENABLED(DEBUG_FEATURE)
+    if (printer.debugFeature()) {
       DEBUG_POS("probe.set_deployed", mechanics.current_position);
       SERIAL_EMV("deploy: ", deploy);
     }
@@ -105,7 +101,7 @@ bool Probe::set_deployed(const bool deploy) {
       #elif ENABLED(BLTOUCH) && MECH(DELTA)
         if (set_bltouch_deployed(deploy)) return true;
       #elif HAS_Z_SERVO_PROBE && DISABLED(BLTOUCH)
-        MOVE_SERVO(Z_PROBE_SERVO_NR, z_servo_angle[deploy ? 0 : 1]);
+        MOVE_SERVO(Z_PROBE_SERVO_NR, servo[Z_PROBE_SERVO_NR].angle[(deploy ? 0 : 1)]);
       #elif ENABLED(Z_PROBE_ALLEN_KEY)
         deploy ? run_deploy_moves_script() : run_stow_moves_script();
       #endif
@@ -159,8 +155,8 @@ bool Probe::set_deployed(const bool deploy) {
 
     #if HAS_BED_PROBE
 
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (printer.debugLeveling()) {
+      #if ENABLED(DEBUG_FEATURE)
+        if (printer.debugFeature()) {
           SERIAL_MV(">>> check_pt(", LOGICAL_X_POSITION(rx));
           SERIAL_MV(", ", LOGICAL_Y_POSITION(ry));
           SERIAL_MT(", ", raise_after == PROBE_PT_RAISE ? "raise" : raise_after == PROBE_PT_STOW ? "stow" : "none");
@@ -218,8 +214,8 @@ bool Probe::set_deployed(const bool deploy) {
         SERIAL_LM(ER, MSG_ERR_PROBING_FAILED);
       }
 
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (printer.debugLeveling()) SERIAL_EM("<<< check_pt");
+      #if ENABLED(DEBUG_FEATURE)
+        if (printer.debugFeature()) SERIAL_EM("<<< check_pt");
       #endif
 
       return measured_z;
@@ -291,8 +287,8 @@ bool Probe::set_deployed(const bool deploy) {
 
     bltouch_command(deploy ? BLTOUCH_DEPLOY : BLTOUCH_STOW);
 
-    #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (printer.debugLeveling()) {
+    #if ENABLED(DEBUG_FEATURE)
+      if (printer.debugFeature()) {
         SERIAL_MV("set_bltouch_deployed(", deploy);
         SERIAL_CHR(')'); SERIAL_EOL();
       }
@@ -323,8 +319,8 @@ void Probe::servo_test() {
       SERIAL_EM("Servo probe test");
     #endif
     SERIAL_EMV(".  Using index:  ", probe_index);
-    SERIAL_EMV(".  Deploy angle: ", probe.z_servo_angle[0]);
-    SERIAL_EMV(".  Stow angle:   ", probe.z_servo_angle[1]);
+    SERIAL_EMV(".  Deploy angle: ", servo[probe_index].angle[0]);
+    SERIAL_EMV(".  Stow angle:   ", servo[probe_index].angle[1]);
 
     bool probe_logic;
 
@@ -366,10 +362,10 @@ void Probe::servo_test() {
     bool deploy_state, stow_state;
 
     do {
-      MOVE_SERVO(probe_index, probe.z_servo_angle[0]); //deploy
+      MOVE_SERVO(probe_index, servo[probe_index].angle[0]); // deploy
       printer.safe_delay(500);
       deploy_state = HAL::digitalRead(PROBE_TEST_PIN);
-      MOVE_SERVO(probe_index, probe.z_servo_angle[1]); //stow
+      MOVE_SERVO(probe_index, servo[probe_index].angle[1]); // stow
       printer.safe_delay(500);
       stow_state = HAL::digitalRead(PROBE_TEST_PIN);
     } while (++i < 4);
@@ -392,8 +388,8 @@ void Probe::servo_test() {
         SERIAL_EM("ERROR: BLTOUCH enabled - set this device up as a Z Servo Probe with inverting as true.");
       #endif
     }
-    else {                                        // measure active signal length
-      MOVE_SERVO(probe_index, probe.z_servo_angle[0]);  // deploy
+    else {    // measure active signal length
+      MOVE_SERVO(probe_index, servo[probe_index].angle[0]); // deploy
       printer.safe_delay(500);
       SERIAL_EM("please trigger probe");
       uint16_t probe_counter = 0;
@@ -418,7 +414,7 @@ void Probe::servo_test() {
           else
             SERIAL_EM("noise detected - please re-run test");   // less than 2mS pulse
 
-          MOVE_SERVO(probe_index, probe.z_servo_angle[1]); //stow
+          MOVE_SERVO(probe_index, servo[probe_index].angle[1]); // stow
 
         } // pulse detected
 
@@ -442,8 +438,8 @@ void Probe::servo_test() {
  * @return true to indicate an error
  */
 bool Probe::move_to_z(const float z, const float fr_mm_s) {
-  #if ENABLED(DEBUG_LEVELING_FEATURE)
-    if (printer.debugLeveling()) DEBUG_POS(">>> probe.move_to_z", mechanics.current_position);
+  #if ENABLED(DEBUG_FEATURE)
+    if (printer.debugFeature()) DEBUG_POS(">>> probe.move_to_z", mechanics.current_position);
   #endif
 
   // Deploy BLTouch at the start of any probe
@@ -502,8 +498,8 @@ bool Probe::move_to_z(const float z, const float fr_mm_s) {
   // Tell the planner where we actually are
   mechanics.sync_plan_position_mech_specific();
 
-  #if ENABLED(DEBUG_LEVELING_FEATURE)
-    if (printer.debugLeveling()) DEBUG_POS("<<< probe.move_to_z", mechanics.current_position);
+  #if ENABLED(DEBUG_FEATURE)
+    if (printer.debugFeature()) DEBUG_POS("<<< probe.move_to_z", mechanics.current_position);
   #endif
 
   return !probe_triggered;
@@ -513,8 +509,8 @@ bool Probe::move_to_z(const float z, const float fr_mm_s) {
  * Raise Z to a minimum height to make room for a probe to move
  */
 void Probe::do_raise(const float z_raise) {
-  #if ENABLED(DEBUG_LEVELING_FEATURE)
-    if (printer.debugLeveling()) {
+  #if ENABLED(DEBUG_FEATURE)
+    if (printer.debugFeature()) {
       SERIAL_MV("probe.do_raise(", z_raise);
       SERIAL_CHR(')');
       SERIAL_EOL();
@@ -543,8 +539,8 @@ float Probe::run_probing() {
   // Stop the probe before it goes too low to prevent damage.
   #define Z_PROBE_LOW_POINT (-2 - offset[Z_AXIS])
 
-  #if ENABLED(DEBUG_LEVELING_FEATURE)
-    if (printer.debugLeveling()) DEBUG_POS(">>> probe.run_probing", mechanics.current_position);
+  #if ENABLED(DEBUG_FEATURE)
+    if (printer.debugFeature()) DEBUG_POS(">>> probe.run_probing", mechanics.current_position);
   #endif
 
   // If the nozzle is well over the travel height then
@@ -561,8 +557,8 @@ float Probe::run_probing() {
 
     // move down slowly to find bed
     if (move_to_z(Z_PROBE_LOW_POINT, MMM_TO_MMS(Z_PROBE_SPEED_SLOW))) {
-      #if ENABLED(DEBUG_LEVELING_FEATURE)
-        if (printer.debugLeveling()) {
+      #if ENABLED(DEBUG_FEATURE)
+        if (printer.debugFeature()) {
           SERIAL_EM("SLOW Probe fail!");
           DEBUG_POS("<<< probe.run_probing", mechanics.current_position);
         }
@@ -598,7 +594,7 @@ float Probe::run_probing() {
     // Move to trigger deployment
     do_blocking_move_to(z_probe_deploy_start_location, mechanics.homing_feedrate_mm_s[Z_AXIS]);
   }
-  void run_stow_moves_script() {
+  void Probe::run_stow_moves_script() {
 
     const float z_probe_retract_start_location[] = Z_PROBE_RETRACT_START_LOCATION,
                 z_probe_retract_end_location[] = Z_PROBE_RETRACT_END_LOCATION;
@@ -628,8 +624,8 @@ float Probe::run_probing() {
    *              If true, move to MAX_X and release the solenoid
    */
   void Probe::dock_sled(bool stow) {
-    #if ENABLED(DEBUG_LEVELING_FEATURE)
-      if (printer.debugLeveling()) {
+    #if ENABLED(DEBUG_FEATURE)
+      if (printer.debugFeature()) {
         SERIAL_MV("dock_sled(", stow);
         SERIAL_CHR(')'); SERIAL_EOL();
       }

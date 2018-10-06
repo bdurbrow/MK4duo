@@ -35,8 +35,8 @@
    *
    *  E[distance] - Retract the filament this far
    *  Z[distance] - Move the Z axis by this distance
-   *  X[position] - Move to this X position, with Y
-   *  Y[position] - Move to this Y position, with X
+   *  X[position] - Move to this X position
+   *  Y[position] - Move to this Y position
    *  U[distance] - Retract distance for removal (manual reload)
    *  L[distance] - Extrude distance for insertion (manual reload)
    *  S[temp]     - New temperature for new filament
@@ -89,15 +89,15 @@
     #endif
 
     // Unload filament
-    const float unload_length = ABS(parser.seen('U') ? parser.value_axis_units(E_AXIS)
-                                                       : filament_change_unload_length[tools.active_extruder]);
+    const float unload_length = ABS(parser.seen('U')  ? parser.value_axis_units(E_AXIS)
+                                                      : filament_change_unload_length[tools.active_extruder]);
 
     // Slow load filament
     constexpr float slow_load_length = PAUSE_PARK_SLOW_LOAD_LENGTH;
 
     // Load filament
     const float fast_load_length = ABS(parser.seen('L') ? parser.value_axis_units(E_AXIS)
-                                                          : filament_change_load_length[tools.active_extruder]);
+                                                        : filament_change_load_length[tools.active_extruder]);
 
     if (parser.seenval('S')) heaters[ACTIVE_HOTEND].setTarget(parser.value_celsius());
 

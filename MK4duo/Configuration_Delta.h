@@ -81,6 +81,9 @@
 // if you want use new function comment this (using // at the start of the line)
 #define DELTA_SEGMENTS_PER_SECOND 200
 
+// Convert feedrates to apply to the Effector instead of the Carriages
+//#define DELTA_FEEDRATE_SCALING
+
 // NOTE: All following values for DELTA_* MUST be floating point,
 // so always have a decimal point in them.
 //
@@ -415,11 +418,6 @@
  *****************************************************************************************/
 //#define AUTO_BED_LEVELING_UBL
 //#define AUTO_BED_LEVELING_BILINEAR
-
-// Enable detailed logging of G28, G29, G30, M48, etc.
-// Turn on with the command 'M111 S32'.
-// NOTE: Requires a lot of PROGMEM!
-//#define DEBUG_LEVELING_FEATURE
 
 // enable a graphics overly while editing the mesh from auto-level
 //#define MESH_EDIT_GFX_OVERLAY

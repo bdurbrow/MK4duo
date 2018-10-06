@@ -109,7 +109,7 @@
 
     public: /** Public Function */
 
-      #if PLANNER_LEVELING
+      #if PLANNER_LEVELING || HAS_UBL_AND_CURVES
         /**
          * Apply leveling to transform a cartesian position
          * as it will be given to the planner and steppers.
@@ -134,7 +134,7 @@
          *  Returns 1.0 if planner.z_fade_height is 0.0.
          *  Returns 0.0 if Z is past the specified 'Fade Height'.
          */
-        inline static float fade_scaling_factor_for_z(const float &rz) {
+        static inline float fade_scaling_factor_for_z(const float &rz) {
           static float z_fade_factor = 1.0;
           if (z_fade_height) {
             if (rz >= z_fade_height) return 0.0;

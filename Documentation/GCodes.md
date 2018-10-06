@@ -129,7 +129,8 @@
 | M221 | ? | T[extruder] S[factor in percent] - set extrude factor override percentage
 | M222 | ? | T[extruder] S[factor in percent] - set density extrude factor percentage for purge
 | M240 | ? | Trigger a camera to take a photograph
-| M280 | ? | Position an RC Servo P[index] S[angle/microseconds], ommit S to report back current angle
+| M280 | SERVO | Position an RC Servo P[index] S[angle/microseconds], ommit S to report back current angle
+| M281 | SERVO | Set servo low|up angles position. P[index] L[low] U[up]
 | M300 | ? | Play beep sound S[frequency Hz] P[duration ms]
 | M301 | ? | Set PID parameters P I D and C. H[heaters] H = 0-3 Hotend, H = -1 BED, H = -2 CHAMBER, H = -3 COOLER, P[float] Kp term, I[float] Ki term, D[float] Kd term. With PID ADD EXTRUSION RATE: C[float] Kc term, L[float] LPQ length
 | M302 | ? | Allow cold extrudes, or set the minimum extrude S[temperature>.
@@ -191,6 +192,8 @@
 | M912 | TRINAMIC | Clear stepper driver overtemperature pre-warn condition flag
 | M913 | HYBRID THRESHOLD | Set HYBRID THRESHOLD speed
 | M914 | SENSORLESS HOMING | Set SENSORLESS HOMING sensitivity
+| M915 | TRINAMIC | TMC Z axis calibration routine
+| M922 | TRINAMIC | S[1/0] Enable/disable TMC debug
 | M928 | ? | Start SD logging (M928 filename.g) - ended by M29
 | M995 | ? | X Y Z Set origin for graphic in NEXTION
 | M996 | ? | S[scale] Set scale for graphic in NEXTION
